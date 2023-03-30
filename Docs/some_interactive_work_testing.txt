@@ -1,0 +1,126 @@
+Auto-reload is on. Simply save files over USB to run them or enter REPL to disable.
+
+Press any key to enter the REPL. Use CTRL-D to reload.
+
+Adafruit CircuitPython 7.2.5 on 2022-04-06; Raspberry Pi Pico with rp2040
+>>>
+>>>
+>>> import usb_midi
+>>> usb_midi.ports
+(<PortIn>, <PortOut>)
+>>> po = usb_midi.ports[1]
+>>> po.write("
+Auto-reload is on. Simply save files over USB to run them or enter REPL to disable.
+
+Press any key to enter the REPL. Use CTRL-D to reload.
+
+Adafruit CircuitPython 7.2.5 on 2022-04-06; Raspberry Pi Pico with rp2040
+>>>
+>>> import usb_midi
+>>> import adafruit_midi
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ImportError: no module named 'adafruit_midi'
+>>> pip
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+NameError: name 'pip' is not defined
+>>> import adafruit_midi
+>>> m = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=0)
+>>> m.
+send            __dict__        in_channel      out_channel
+receive
+>>> from adafruit_midi.note_on import NoteOn
+>>> from adafruit_midi.note_off import NoteOff
+>>> m.send(NoteOn(110, 60))
+>>> m.send(NoteOff(110, 60))
+>>> m.send(NoteOn(110, 60))
+>>> m.send(NoteOn(110, 0))
+>>> m.send(NoteOn(110, 0))
+>>> m.send(NoteOn(110, 60))
+>>> m.send(NoteOn(110, 0))
+>>> def playn(n):
+... m.send(NoteOn(110, 60))
+usb_midi        adafruit_midi   m               NoteOn
+NoteOff
+...     m.send(NoteOn(1n, 60))
+...     m.send(NoteOn(1n, 0))
+...
+...
+... def playn(n):
+...     m.send(NoteOn(n, 0))
+...     m.send(NoteOn(1n, 60))
+...
+...
+... def playn(n):
+...     m.send(NoteOn(n, 60))
+...     m.send(NoteOn(n, 0))
+...
+...
+... play(41)
+... playn](41)
+... playn(41)
+...
+Traceback (most recent call last):
+  File "<stdin>", line 2
+SyntaxError: invalid syntax for integer with base 10
+>>>
+>>> def playn(n):
+...     m.send(NoteOn(n, 60))
+...     m.send(NoteOn(n, 0))
+...
+...
+...
+>>> playn(41)
+>>>
+>>> playn
+<function playn at 0x2000a000>
+>>> playn(100)
+>>>
+>>> global m
+>>> playn(41)
+>>> playn(100)
+>>> def playn(n):
+...     m.send(NoteOn(n, 60))
+...     sleep(.5)
+...     m.send(NoteOn(n, 0))
+...
+...
+...
+>>> playn(100)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "<stdin>", line 3, in playn
+NameError: name 'sleep' is not defined
+>>> m.send(NoteOn(n, 0))
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+NameError: name 'n' is not defined
+>>> m.send(NoteOn(100, 0))
+>>> def playn(n):
+...     m.send(NoteOn(n, 60))
+...     time.sleep(.5)
+...     m.send(NoteOn(n, 0))
+...
+...
+...
+>>> import time
+>>> playn(41)
+>>> playn(80)
+>>> playn(80)
+>>> playn(80)
+>>> playn(80)
+>>>
+>>>
+>>> playn(80)
+>>> playn(80)
+>>> playn(80)
+>>> playn(80)
+>>> playn(80)
+>>> playn(80)
+>>> playn(81)
+>>> playn(80
+... )
+>>> playn(80); playn(90); playn(100)
+>>>
+
