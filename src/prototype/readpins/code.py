@@ -10,40 +10,48 @@ from adafruit_midi.note_off import NoteOff
 
 import time
 
-# PIN | MIDI_NOTE | Pin Object | tick of last hit | last state
+class SM(object):
+    IDLE         = 1
+    HIT_DETECTED = 2
+    DEBOUNCED    = 3
+
+
+# PIN | MIDI_NOTE | Pin Object | tick of last hit | state
 PIN_MIDI_MAP =  [
-    [ board.GP0,     0 , None, 0, 1],
-    [ board.GP1,     1 , None, 0, 1],
-    [ board.GP2,     2 , None, 0, 1],
-    [ board.GP3,     3 , None, 0, 1],
-    [ board.GP4,     4 , None, 0, 1],
-    [ board.GP5,     5 , None, 0, 1],
-    [ board.GP6,     6 , None, 0, 1],
-    [ board.GP7,     7 , None, 0, 1],
-    [ board.GP8,     8 , None, 0, 1],
-    [ board.GP9,     9 , None, 0, 1],
-    [ board.GP10,   10 , None, 0, 1],
-    [ board.GP11,   11 , None, 0, 1],
-    [ board.GP12,   12 , None, 0, 1],
-    [ board.GP13,   13 , None, 0, 1],
-    [ board.GP14,   14 , None, 0, 1],
-    [ board.GP15,   15 , None, 0, 1],
-    [ board.GP16,   84 , None, 0, 1],
-    [ board.GP17,   91 , None, 0, 1],
-    [ board.GP18,   18 , None, 0, 1],
-    [ board.GP19,   19 , None, 0, 1],
-    [ board.GP20,   20 , None, 0, 1],
-    [ board.GP21,   21 , None, 0, 1],
-    [ board.GP22,   22 , None, 0, 1],
-    [ board.GP23,   23 , None, 0, 1],
-    [ board.GP24,   22 , None, 0, 1],
-    [ board.GP25,   25 , None, 0, 1],
-    [ board.GP26,   26 , None, 0, 1],
-    [ board.GP27,   27 , None, 0, 1],
-    [ board.GP28,   28 , None, 0, 1],
+    [ board.GP0,     0 , None, 0, SM.IDLE],
+    [ board.GP1,     1 , None, 0, SM.IDLE],
+    [ board.GP2,     2 , None, 0, SM.IDLE],
+    [ board.GP3,     3 , None, 0, SM.IDLE],
+    [ board.GP4,     4 , None, 0, SM.IDLE],
+    [ board.GP5,     5 , None, 0, SM.IDLE],
+    [ board.GP6,     6 , None, 0, SM.IDLE],
+    [ board.GP7,     7 , None, 0, SM.IDLE],
+    [ board.GP8,     8 , None, 0, SM.IDLE],
+    [ board.GP9,     9 , None, 0, SM.IDLE],
+    [ board.GP10,   10 , None, 0, SM.IDLE],
+    [ board.GP11,   11 , None, 0, SM.IDLE],
+    [ board.GP12,   12 , None, 0, SM.IDLE],
+    [ board.GP13,   0 , None, 0, SM.IDLE],
+    [ board.GP14,   67 , None, 0, SM.IDLE],
+    [ board.GP15,   64 , None, 0, SM.IDLE],
+    [ board.GP16,   60 , None, 0, SM.IDLE],
+    [ board.GP17,   69 , None, 0, SM.IDLE],
+    [ board.GP18,   18 , None, 0, SM.IDLE],
+    [ board.GP19,   19 , None, 0, SM.IDLE],
+    [ board.GP20,   20 , None, 0, SM.IDLE],
+    [ board.GP21,   21 , None, 0, SM.IDLE],
+    [ board.GP22,   22 , None, 0, SM.IDLE],
+    [ board.GP23,   23 , None, 0, SM.IDLE],
+    [ board.GP24,   22 , None, 0, SM.IDLE],
+    [ board.GP25,   25 , None, 0, SM.IDLE],
+    [ board.GP26,   26 , None, 0, SM.IDLE],
+    [ board.GP27,   27 , None, 0, SM.IDLE],
+    [ board.GP28,   28 , None, 0, SM.IDLE],
 ]
 
 m = adafruit_midi.MIDI(midi_out=usb_midi.ports[1], out_channel=1)
+
+DEBOUNCE_TIME = 40*1000*1000 # 40 microseconds
 
 #Initialize Pins
 for indx in range(0,len(PIN_MIDI_MAP)):
@@ -55,26 +63,28 @@ for indx in range(0,len(PIN_MIDI_MAP)):
 
 while True:
     for indx in range(0,  len(PIN_MIDI_MAP)):
-        p = PIN_MIDI_MAP[indx][2]
-        tic = PIN_MIDI_MAP[indx][3]
-        now_tick = time.monotonic_ns()
-        state = p.value
-        last_state = PIN_MIDI_MAP[indx][4]
-        midi_note = PIN_MIDI_MAP[indx][1]
-        if state == 0 and now_tick > tic and last_state == 1:
 
-            print("pin hit " + str(midi_note))
-            PIN_MIDI_MAP[indx][3] = now_tick + 8000000 # 40ms later
-            if midi_note > 28:
-                # Send midi message3
-                print("Sending midi")
+        pin           = PIN_MIDI_MAP[indx][2]
+        tic           = PIN_MIDI_MAP[indx][3]
+        now_tick      = time.monotonic_ns()
+        current_state = PIN_MIDI_MAP[indx][4]
+        midi_note     = PIN_MIDI_MAP[indx][1]
+
+        if current_state == SM.IDLE:
+            # Waiting for Hit
+            if pin.value == 0:
+                PIN_MIDI_MAP[indx][4] = SM.HIT_DETECTED
+                PIN_MIDI_MAP[indx][3] = now_tick + DEBOUNCE_TIME
+                print("Sending midi on" +str(midi_note))
                 m.send(NoteOn(midi_note, 60))
 
-        if state == 1 and now_tick > tic:
-            if midi_note > 28:
-                # Send midi message3
-                print("Sending midi off")
-                m.send(NoteOff(midi_note, 60))
-            PIN_MIDI_MAP[indx][3] = now_tick + 8000000 # 40ms later
+        elif current_state == SM.HIT_DETECTED:
+            # Now lets debounc the hit
+            if now_tick > tic:
+                PIN_MIDI_MAP[indx][4] = SM.DEBOUNCED
+        elif current_state == SM.DEBOUNCED:
+            if pin.value == 1:
+                PIN_MIDI_MAP[indx][4] = SM.IDLE
+                print("Sending midi off" +str(midi_note))
+                m.send(NoteOn(midi_note,0))
 
-        PIN_MIDI_MAP[indx][4] = state
