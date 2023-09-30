@@ -62,29 +62,34 @@ for indx in range(0,len(PIN_MIDI_MAP)):
     PIN_MIDI_MAP[indx][2] = p
 
 while True:
-    for indx in range(0,  len(PIN_MIDI_MAP)):
+    mmm = PIN_MIDI_MAP
+    for entry in mmm:
 
-        pin           = PIN_MIDI_MAP[indx][2]
-        tic           = PIN_MIDI_MAP[indx][3]
-        now_tick      = time.monotonic_ns()
-        current_state = PIN_MIDI_MAP[indx][4]
-        midi_note     = PIN_MIDI_MAP[indx][1]
+
+
+        pin           = entry[2]
+        tic           = entry[3]
+        current_state = entry[4]
+        midi_note     = entry[1]
 
         if current_state == SM.IDLE:
             # Waiting for Hit
             if pin.value == 0:
-                PIN_MIDI_MAP[indx][4] = SM.HIT_DETECTED
-                PIN_MIDI_MAP[indx][3] = now_tick + DEBOUNCE_TIME
-                print("Sending midi on" +str(midi_note))
+                now_tick      = time.monotonic_ns()
+
+                entry[4] = SM.HIT_DETECTED
+                entry[3] = now_tick + DEBOUNCE_TIME
+                #print("Sending midi on" +str(midi_note))
                 m.send(NoteOn(midi_note, 60))
 
         elif current_state == SM.HIT_DETECTED:
+            now_tick      = time.monotonic_ns()
             # Now lets debounc the hit
             if now_tick > tic:
-                PIN_MIDI_MAP[indx][4] = SM.DEBOUNCED
+                entry[4] = SM.DEBOUNCED
         elif current_state == SM.DEBOUNCED:
             if pin.value == 1:
-                PIN_MIDI_MAP[indx][4] = SM.IDLE
-                print("Sending midi off" +str(midi_note))
+                entry[4] = SM.IDLE
+                #print("Sending midi off" +str(midi_note))
                 m.send(NoteOn(midi_note,0))
 
