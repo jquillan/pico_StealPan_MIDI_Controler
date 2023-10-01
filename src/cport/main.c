@@ -14,7 +14,8 @@
 typedef enum {
     IDLE,
     HIT_DETECTED,
-    DEBOUNCED
+    DEBOUNCED,
+    UP_DETECTED,
 } smstate;
 
 
@@ -57,8 +58,10 @@ note_map_t PIN_MIDI_MAP[] = {
     { 28,   28 ,  0, IDLE},
 };
 
-// 40 microseconds
-uint64_t DEBOUNCE_TIME = 100*1000;
+// 100 mils
+uint64_t DOWN_DEBOUNCE_TIME = 100*1000;
+// 20 mils
+uint64_t UP_DEBOUNCE_TIME = 10*1000;
 
 // START From pico-example-midi.c
 enum  {
@@ -132,7 +135,7 @@ void gpio_read_tasks()
 
                 if(! gpio_get(nmt->pin_no)) {
                     nmt->state = HIT_DETECTED;
-                    nmt->last_tickhit = now_tick + DEBOUNCE_TIME;
+                    nmt->last_tickhit = now_tick + DOWN_DEBOUNCE_TIME;
                     printf("Midi On %d\n", nmt->midi_note);
 
                     queue_entry_t entry = { nmt->midi_note, true};
@@ -146,12 +149,18 @@ void gpio_read_tasks()
                 break;
             case DEBOUNCED:
                 if(gpio_get(nmt->pin_no)) {
-                    nmt->state = IDLE;
+                    nmt->last_tickhit = now_tick + UP_DEBOUNCE_TIME;
+                    nmt->state = UP_DETECTED;
                     printf("Midi Off %d\n", nmt->midi_note);
                     // SEND MIDI NOTE OFF
                     queue_entry_t entry = { nmt->midi_note, false};
                     queue_try_add(&midi_queue, &entry);
                 }
+                break;
+            case UP_DETECTED:
+                    if( now_tick > nmt->last_tickhit) {
+                        nmt->state = IDLE;
+                    }
                 break;
             }
         }
