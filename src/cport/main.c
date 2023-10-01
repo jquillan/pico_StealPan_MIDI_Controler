@@ -1,6 +1,12 @@
 
 #include <stdio.h>
 #include <pico/stdlib.h>
+#include "hardware/gpio.h"
+#include "pico/binary_info.h"
+
+#include "bsp/board.h"
+
+#include "tusb.h"
 
 //# PIN | MIDI_NOTE | Pin Object | tick of last hit | state
 typedef enum {
@@ -52,9 +58,61 @@ note_map_t PIN_MIDI_MAP[] = {
 // 40 microseconds
 uint64_t DEBOUNCE_TIME = 40*1000;
 
+// START From pico-example-midi.c
+enum  {
+  BLINK_NOT_MOUNTED = 250,
+  BLINK_MOUNTED = 1000,
+  BLINK_SUSPENDED = 2500,
+};
+
+
+static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
+const uint LED_PIN = PICO_DEFAULT_LED_PIN;
+
+// Invoked when device is mounted
+void tud_mount_cb(void)
+{
+  blink_interval_ms = BLINK_MOUNTED;
+}
+
+// Invoked when device is unmounted
+void tud_umount_cb(void)
+{
+  blink_interval_ms = BLINK_NOT_MOUNTED;
+}
+
+// END pico-example-midi.c
+
+void led_blinking_task(void);
+
+
+void note_onoff(uint note_no, bool onoff)
+{
+
+
+    // TODO: Fix channel here
+    uint8_t msg[3];
+
+    // Send Note On for current position at full velocity (127) on channel 1.
+    if(onoff) {
+        msg[0] = 0x90;                    // Note On - Channel 1
+        msg[2] = 64;                     // Velocity
+    }
+    else {
+        msg[0] = 0x80;                    // Note Off - Channel 1
+        msg[2] = 0;                     // Velocity
+    }
+    msg[1] = note_no;
+
+    tud_midi_stream_write(0, msg, 3);
+}
+
 int main()
 {
     stdio_init_all();
+
+    board_init();
+    tusb_init();
 
     // Initialize pins
     for(int x = 0; x < sizeof(PIN_MIDI_MAP)/sizeof(PIN_MIDI_MAP[0]); x++) {
@@ -64,9 +122,13 @@ int main()
 
     }
 
-
+    // Main Loop
     while (true) {
 
+        tud_task();
+        led_blinking_task();
+
+        // Loop through all of the pins looking for state changes
         for(int x = 0; x < sizeof(PIN_MIDI_MAP)/sizeof(PIN_MIDI_MAP[0]); x++) {
 
             note_map_t* nmt = &PIN_MIDI_MAP[x];
@@ -79,7 +141,7 @@ int main()
                     nmt->state = HIT_DETECTED;
                     nmt->last_tickhit = now_tick + DEBOUNCE_TIME;
                     printf("Midi On %d\n", nmt->midi_note);
-                    // * SEND MIDI NOTE ON
+                    note_onoff(nmt->midi_note, true);
                 }
                break;
             case HIT_DETECTED:
@@ -92,9 +154,26 @@ int main()
                     nmt->state = IDLE;
                     printf("Midi Off %d\n", nmt->midi_note);
                     // SEND MIDI NOTE OFF
+                    note_onoff(nmt->midi_note, false);
                 }
                 break;
             }
         }
     }
+}
+
+//--------------------------------------------------------------------+
+// BLINKING TASK
+//--------------------------------------------------------------------+
+void led_blinking_task(void)
+{
+  static uint32_t start_ms = 0;
+  static bool led_state = false;
+
+  // Blink every interval ms
+  if ( board_millis() - start_ms < blink_interval_ms) return; // not enough time
+  start_ms += blink_interval_ms;
+
+  board_led_write(led_state);
+  led_state = 1 - led_state; // toggle
 }
