@@ -10,6 +10,14 @@ velocity sensitivity.
 
 ## Getting Started
 
+## History
+
+I got this idea while playing in a parent steal drum band. Not owning a pan myself I was wondering how I could practice. Knowing I had the pico, and CircuitPython, this idea was born.
+
+Turns out CircuitPython was not fast enough (or at least my implementation in python) as there was a noticeable delay between when the pad was hit and my computer would play the MIDI note. so I ported the code to C and the pico SDK, and here we are today.
+
+The prototype folder contains the original CircuitPython implementation.
+
 ### Dependencies
 
 You will need to build some sort of controller. The one I used consist of
