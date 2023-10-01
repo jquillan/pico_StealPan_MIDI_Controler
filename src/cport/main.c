@@ -10,7 +10,6 @@
 
 #include "tusb.h"
 
-//# PIN | MIDI_NOTE | Pin Object | tick of last hit | state
 typedef enum {
     IDLE,
     HIT_DETECTED,
@@ -60,7 +59,7 @@ note_map_t PIN_MIDI_MAP[] = {
 
 // 100 mils
 uint64_t DOWN_DEBOUNCE_TIME = 100*1000;
-// 20 mils
+// 10 mils
 uint64_t UP_DEBOUNCE_TIME = 10*1000;
 
 // START From pico-example-midi.c
@@ -184,16 +183,16 @@ int main()
         note_map_t* nmt = &PIN_MIDI_MAP[x];
         gpio_set_dir(nmt->pin_no, GPIO_IN);
         gpio_pull_up(nmt->pin_no);
-
     }
+
     multicore_launch_core1(gpio_read_tasks);
+
     queue_entry_t entry;
     // Main Loop
     while (true) {
 
         tud_task();
         //led_blinking_task();
-
 
         while(queue_try_remove(&midi_queue, &entry)) {
             note_onoff(entry.midi_note, entry.onoff);
