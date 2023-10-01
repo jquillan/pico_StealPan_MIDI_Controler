@@ -3,6 +3,8 @@
 #include <pico/stdlib.h>
 #include "hardware/gpio.h"
 #include "pico/binary_info.h"
+#include "pico/util/queue.h"
+#include "pico/multicore.h"
 
 #include "bsp/board.h"
 
@@ -107,29 +109,17 @@ void note_onoff(uint note_no, bool onoff)
     tud_midi_stream_write(0, msg, 3);
 }
 
-int main()
+typedef struct
 {
-    stdio_init_all();
+    int32_t midi_note;
+    bool    onoff;
+} queue_entry_t;
 
-    board_init();
-    tusb_init();
+queue_t midi_queue;
 
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-
-    // Initialize pins
-    for(int x = 0; x < sizeof(PIN_MIDI_MAP)/sizeof(PIN_MIDI_MAP[0]); x++) {
-        note_map_t* nmt = &PIN_MIDI_MAP[x];
-        gpio_set_dir(nmt->pin_no, GPIO_IN);
-        gpio_pull_up(nmt->pin_no);
-
-    }
-
-    // Main Loop
-    while (true) {
-
-        tud_task();
-        led_blinking_task();
+void gpio_read_tasks()
+{
+   while (true) {
 
         // Loop through all of the pins looking for state changes
         for(int x = 0; x < sizeof(PIN_MIDI_MAP)/sizeof(PIN_MIDI_MAP[0]); x++) {
@@ -144,7 +134,9 @@ int main()
                     nmt->state = HIT_DETECTED;
                     nmt->last_tickhit = now_tick + DEBOUNCE_TIME;
                     printf("Midi On %d\n", nmt->midi_note);
-                    note_onoff(nmt->midi_note, true);
+
+                    queue_entry_t entry = { nmt->midi_note, true};
+                    queue_try_add(&midi_queue, &entry);
                 }
                break;
             case HIT_DETECTED:
@@ -157,10 +149,45 @@ int main()
                     nmt->state = IDLE;
                     printf("Midi Off %d\n", nmt->midi_note);
                     // SEND MIDI NOTE OFF
-                    note_onoff(nmt->midi_note, false);
+                    queue_entry_t entry = { nmt->midi_note, false};
+                    queue_try_add(&midi_queue, &entry);
                 }
                 break;
             }
+        }
+    }
+
+}
+
+int main()
+{
+    stdio_init_all();
+
+    board_init();
+    tusb_init();
+
+    queue_init(&midi_queue, sizeof(queue_entry_t), 4);
+
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+    // Initialize pins
+    for(int x = 0; x < sizeof(PIN_MIDI_MAP)/sizeof(PIN_MIDI_MAP[0]); x++) {
+        note_map_t* nmt = &PIN_MIDI_MAP[x];
+        gpio_set_dir(nmt->pin_no, GPIO_IN);
+        gpio_pull_up(nmt->pin_no);
+
+    }
+    multicore_launch_core1(gpio_read_tasks);
+    queue_entry_t entry;
+    // Main Loop
+    while (true) {
+
+        tud_task();
+        //led_blinking_task();
+
+
+        while(queue_try_remove(&midi_queue, &entry)) {
+            note_onoff(entry.midi_note, entry.onoff);
         }
     }
 }
