@@ -56,7 +56,7 @@ note_map_t PIN_MIDI_MAP[] = {
 };
 
 // 40 microseconds
-uint64_t DEBOUNCE_TIME = 40*1000;
+uint64_t DEBOUNCE_TIME = 100*1000;
 
 // START From pico-example-midi.c
 enum  {
@@ -113,6 +113,9 @@ int main()
 
     board_init();
     tusb_init();
+
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
 
     // Initialize pins
     for(int x = 0; x < sizeof(PIN_MIDI_MAP)/sizeof(PIN_MIDI_MAP[0]); x++) {
@@ -174,6 +177,6 @@ void led_blinking_task(void)
   if ( board_millis() - start_ms < blink_interval_ms) return; // not enough time
   start_ms += blink_interval_ms;
 
-  board_led_write(led_state);
-  led_state = 1 - led_state; // toggle
+  gpio_put(LED_PIN, led_state);
+  led_state = !led_state; // toggle
 }
