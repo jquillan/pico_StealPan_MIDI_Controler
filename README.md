@@ -8,6 +8,8 @@ A MIDI controler to create a steelpan MIDI controller that was easy
 and accessable. Because of this goal it lacks various features like
 velocity sensitivity.
 
+See https://youtu.be/ORB1h8npleA for demo of the prototype
+
 ## Getting Started
 
 ## History
